@@ -5,10 +5,12 @@ import com.example.personalfinancetracker.dto.TransactionResponseDTO;
 import com.example.personalfinancetracker.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -41,8 +43,13 @@ public class TransactionController {
 
     // TO-DO: Think about adding a cache layer for calculating balance part
     @GetMapping("/balance/{accountName}")
-    public ResponseEntity<BigDecimal> getBalance(@PathVariable String accountName) {
-        BigDecimal balance = transactionService.calculateBalance(accountName);
+    public ResponseEntity<BigDecimal> getBalance(
+            @PathVariable String accountName,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        LocalDate givenDate = date != null ? date : LocalDate.now();
+        BigDecimal balance = transactionService.calculateBalance(accountName, givenDate);
         return ResponseEntity.ok(balance);
     }
 

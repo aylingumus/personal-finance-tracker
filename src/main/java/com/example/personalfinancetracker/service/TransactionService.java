@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,8 +43,10 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
-    public BigDecimal calculateBalance(String accountName) {
-        return transactionRepository.findByAccountName(accountName).stream()
+    public BigDecimal calculateBalance(String accountName, LocalDate date) {
+        return transactionRepository
+                .findByAccountNameAndDate(accountName, date)
+                .stream()
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
