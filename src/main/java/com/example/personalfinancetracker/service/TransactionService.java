@@ -1,31 +1,45 @@
 package com.example.personalfinancetracker.service;
 
 import com.example.personalfinancetracker.domain.Transaction;
+import com.example.personalfinancetracker.dto.TransactionRequestDTO;
+import com.example.personalfinancetracker.dto.TransactionResponseDTO;
+import com.example.personalfinancetracker.mapper.TransactionMapper;
 import com.example.personalfinancetracker.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionService {
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
+    private final TransactionMapper transactionMapper;
+
 
     @Transactional
-    public Transaction addTransaction(Transaction transaction) {
-        return transactionRepository.save(transaction);
+    public TransactionResponseDTO addTransaction(TransactionRequestDTO requestDTO) {
+        Transaction transaction = transactionMapper.toEntity(requestDTO);
+        Transaction savedTransaction = transactionRepository.save(transaction);
+        return transactionMapper.toDTO(savedTransaction);
     }
 
-    public List<Transaction> getAllTransactions() {
-        return transactionRepository.findAll();
+    public List<TransactionResponseDTO> getAllTransactions() {
+        List<Transaction> transactions = transactionRepository.findAll();
+        return transactions.stream()
+                .map(transactionMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Transaction> getTransactionsByAccount(String accountName) {
-        return transactionRepository.findByAccountName(accountName);
+    public List<TransactionResponseDTO> getTransactionsByAccount(String accountName) {
+        List<Transaction> transactions = transactionRepository.findByAccountName(accountName);
+        return transactions.stream()
+                .map(transactionMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     public BigDecimal calculateBalance(String accountName) {
