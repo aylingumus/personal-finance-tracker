@@ -1,11 +1,15 @@
 package com.example.personalfinancetracker.service;
 
 import com.example.personalfinancetracker.domain.Transaction;
+import com.example.personalfinancetracker.dto.PagedTransactionResponseDTO;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +68,44 @@ public class TransactionService {
 
         Transaction updated = transactionRepository.save(transaction);
         return transactionMapper.toDTO(updated);
+    }
+
+    public PagedTransactionResponseDTO getFilteredTransactions(
+            String accountName,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String category,
+            String description,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+
+        Page<Transaction> pageResult = transactionRepository.findFilteredTransactions(
+                accountName, minAmount, maxAmount, fromDate, toDate, category, description, pageable
+        );
+
+        List<TransactionResponseDTO> transactions = pageResult.getContent().stream()
+                .map(transactionMapper::toDTO)
+                .collect(Collectors.toList());
+
+        BigDecimal totalSum = pageResult.getContent().stream()
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        PagedTransactionResponseDTO response = new PagedTransactionResponseDTO();
+        response.setTransactions(transactions);
+        response.setTotalRecords(pageResult.getTotalElements());
+        response.setTotalSum(totalSum);
+
+        return response;
     }
 }
 

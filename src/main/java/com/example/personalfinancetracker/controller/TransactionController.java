@@ -1,5 +1,6 @@
 package com.example.personalfinancetracker.controller;
 
+import com.example.personalfinancetracker.dto.PagedTransactionResponseDTO;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
 import com.example.personalfinancetracker.service.TransactionService;
@@ -26,9 +27,6 @@ public class TransactionController {
         return ResponseEntity.ok(responseDTO);
     }
 
-    // TO-DO: Consider adding pagination to retrieve all transactions
-    // TO-DO: Add an ability ability to apply filters, ordering and see the sum of all resulting spendings/incomes
-    // TO-DO: Consider adding filtration feature based on days, weeks, months and years
     @GetMapping
     public ResponseEntity<List<TransactionResponseDTO>> getAllTransactions() {
         List<TransactionResponseDTO> transactions = transactionService.getAllTransactions();
@@ -59,5 +57,24 @@ public class TransactionController {
             @Valid @RequestBody TransactionRequestDTO requestDTO) {
         TransactionResponseDTO updatedTransaction = transactionService.updateTransaction(id, requestDTO);
         return ResponseEntity.ok(updatedTransaction);
+    }
+
+    // TO-DO: Consider adding filtration feature based on days, weeks, months and years
+    @GetMapping("/filter")
+    public ResponseEntity<PagedTransactionResponseDTO> filterTransactions(
+            @RequestParam(required = false) String accountName,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String description,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        PagedTransactionResponseDTO response = transactionService.getFilteredTransactions(
+                accountName, minAmount, maxAmount, fromDate, toDate, category, description, page, size, sortBy, sortDir);
+        return ResponseEntity.ok(response);
     }
 }
