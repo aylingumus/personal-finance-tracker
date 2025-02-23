@@ -50,5 +50,20 @@ public class TransactionService {
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    @Transactional
+    public TransactionResponseDTO updateTransaction(Long id, TransactionRequestDTO requestDTO) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        transaction.setAccountName(requestDTO.getAccountName());
+        transaction.setAmount(requestDTO.getAmount());
+        transaction.setCategory(requestDTO.getCategory());
+        transaction.setDescription(requestDTO.getDescription());
+        // TO-DO: Maybe add a field as updatedAt, or update the timestamp or keep the original
+
+        Transaction updated = transactionRepository.save(transaction);
+        return transactionMapper.toDTO(updated);
+    }
 }
 

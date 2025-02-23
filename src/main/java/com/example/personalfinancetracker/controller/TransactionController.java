@@ -53,5 +53,11 @@ public class TransactionController {
         return ResponseEntity.ok(balance);
     }
 
-    // TO-DO: Add an endpoint for modifying an existing spending/income
+    @PutMapping("/{id}")
+    public ResponseEntity<TransactionResponseDTO> updateTransaction(
+            @PathVariable Long id,
+            @Valid @RequestBody TransactionRequestDTO requestDTO) {
+        TransactionResponseDTO updatedTransaction = transactionService.updateTransaction(id, requestDTO);
+        return ResponseEntity.ok(updatedTransaction);
+    }
 }
