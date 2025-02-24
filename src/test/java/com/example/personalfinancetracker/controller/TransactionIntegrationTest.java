@@ -28,6 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 public class TransactionIntegrationTest {
 
+    private static final String API_PREFIX = "/api/v1/transactions";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -54,7 +56,7 @@ public class TransactionIntegrationTest {
         request.setCategory("Income");
         request.setDescription("Salary");
 
-        mockMvc.perform(post("/transactions")
+        mockMvc.perform(post(API_PREFIX)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -69,7 +71,7 @@ public class TransactionIntegrationTest {
         var tx2 = createAndSaveTransaction("Aylin", BigDecimal.valueOf(-10), "Expense", "Groceries");
         var tx3 = createAndSaveTransaction("Nazli", BigDecimal.valueOf(30), "Income", "Bonus");
 
-        mockMvc.perform(get("/transactions/account/Aylin"))
+        mockMvc.perform(get(API_PREFIX + "/account/Aylin"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].accountName", is("Aylin")));
@@ -85,7 +87,7 @@ public class TransactionIntegrationTest {
         updateRequest.setCategory("Income");
         updateRequest.setDescription("Updated Salary");
 
-        mockMvc.perform(put("/transactions/" + tx.getId())
+        mockMvc.perform(put(API_PREFIX + "/" + tx.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
@@ -100,7 +102,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(-20),
                 "Expense", "Groceries", LocalDateTime.of(2025, 2, 15, 12, 0));
 
-        mockMvc.perform(get("/transactions/balance/Aylin")
+        mockMvc.perform(get(API_PREFIX + "/balance/Aylin")
                         .param("date", LocalDate.of(2025, 2, 15).toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string("30.00"));
@@ -113,7 +115,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(-20),
                 "Expense", "Groceries", LocalDateTime.of(2025, 2, 15, 12, 0));
 
-        mockMvc.perform(get("/transactions/balance/Aylin"))
+        mockMvc.perform(get(API_PREFIX + "/balance/Aylin"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("30.00"));
     }
@@ -127,7 +129,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(-100),
                 "Utilities", "Electricity bill", LocalDateTime.of(2025, 2, 20, 14, 0));
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("accountName", "Aylin")
                         .param("fromDate", "2025-02-01")
                         .param("toDate", "2025-02-28")
@@ -149,7 +151,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Nazli", BigDecimal.valueOf(20),
                 "Income", "Gift", LocalDateTime.of(2025, 1, 11, 12, 0));
 
-        mockMvc.perform(get("/transactions"))
+        mockMvc.perform(get(API_PREFIX))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions", hasSize(2)))
                 .andExpect(jsonPath("$.totalRecords", is(2)));
@@ -162,7 +164,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(75), "Food", "Dinner",
                 LocalDateTime.of(2025, 3, 2, 11, 0));
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("accountName", "Aylin")
                         .param("fromDate", "2025-03-01")
                         .param("page", "0")
@@ -179,7 +181,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(75), "Food", "Dinner",
                 LocalDateTime.of(2025, 3, 2, 11, 0));
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("accountName", "Aylin")
                         .param("toDate", "2025-03-02")
                         .param("page", "0")
@@ -193,7 +195,7 @@ public class TransactionIntegrationTest {
     public void shouldReturnTransactionsWithNoMatchingCriteriaReturnsEmpty() throws Exception {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(50), "Income", "Salary", LocalDateTime.of(2025, 2, 10, 10, 0));
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("accountName", "NonExistent")
                         .param("minAmount", "1000")
                         .param("fromDate", "2030-01-01")
@@ -209,7 +211,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(120), "Food", "Lunch", LocalDateTime.of(2025, 1, 15, 12, 0));
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(150), "Food", "Dinner", LocalDateTime.now());
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("accountName", "Aylin")
                         .param("minAmount", "100")
                         .param("page", "0")
@@ -228,7 +230,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(100), "Food", "Lunch", LocalDateTime.of(2025, 3, 1, 10, 0));
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(200), "Food", "Dinner", LocalDateTime.of(2025, 3, 2, 10, 0));
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("accountName", "Aylin")
                         .param("maxAmount", "150")
                         .param("page", "0")
@@ -247,7 +249,7 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(75), "Income", "Freelance job", LocalDateTime.of(2025, 2, 10, 10, 0));
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(25), "Expense", "Restaurant lunch", LocalDateTime.of(2025, 2, 12, 10, 0));
 
-        mockMvc.perform(get("/transactions")
+        mockMvc.perform(get(API_PREFIX)
                         .param("description", "freeLanCe"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions", hasSize(1)))
@@ -260,13 +262,13 @@ public class TransactionIntegrationTest {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(100), "Income", "Salary");
 
         // First call should calculate and cache the balance
-        mockMvc.perform(get("/transactions/balance/Aylin")
+        mockMvc.perform(get(API_PREFIX + "/balance/Aylin")
                         .param("date", LocalDate.now().toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string("100.00"));
 
         // Second call should return the cached value
-        mockMvc.perform(get("/transactions/balance/Aylin")
+        mockMvc.perform(get(API_PREFIX + "/balance/Aylin")
                         .param("date", LocalDate.now().toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string("100.00"));
