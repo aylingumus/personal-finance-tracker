@@ -190,6 +190,72 @@ public class TransactionIntegrationTest {
     }
 
     @Test
+    public void shouldReturnTransactionsWithNoMatchingCriteriaReturnsEmpty() throws Exception {
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(50), "Income", "Salary", LocalDateTime.of(2025, 2, 10, 10, 0));
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "NonExistent")
+                        .param("minAmount", "1000")
+                        .param("fromDate", "2030-01-01")
+                        .param("toDate", "2030-01-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(0)))
+                .andExpect(jsonPath("$.totalRecords", is(0)));
+    }
+
+    @Test
+    public void shouldReturnTransactionsWithMinAmountFilter() throws Exception {
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(80), "Food", "Snack", LocalDateTime.of(2025, 1, 10, 10, 0));
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(120), "Food", "Lunch", LocalDateTime.of(2025, 1, 15, 12, 0));
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(150), "Food", "Dinner", LocalDateTime.now());
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("minAmount", "100")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(2)))
+                .andExpect(jsonPath("$.totalRecords", is(2)))
+                .andExpect(jsonPath("$.transactions[0].accountName", is("Aylin")))
+                .andExpect(jsonPath("$.transactions[0].amount", is(120.0)));
+    }
+
+    @Test
+    public void shouldReturnTransactionsWithMaxAmountFilter() throws Exception {
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(100), "Food", "Lunch", LocalDateTime.of(2025, 3, 1, 10, 0));
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(200), "Food", "Dinner", LocalDateTime.of(2025, 3, 2, 10, 0));
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("maxAmount", "150")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(1)))
+                .andExpect(jsonPath("$.totalRecords", is(1)))
+                .andExpect(jsonPath("$.transactions[0].accountName", is("Aylin")))
+                .andExpect(jsonPath("$.transactions[0].amount", is(100.0)));
+    }
+
+    @Test
+    public void shouldReturnTransactionsWithOnlyDescriptionParam() throws Exception {
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(75), "Income", "Freelance job", LocalDateTime.of(2025, 2, 10, 10, 0));
+        createAndSaveTransaction("Aylin", BigDecimal.valueOf(25), "Expense", "Restaurant lunch", LocalDateTime.of(2025, 2, 12, 10, 0));
+
+        mockMvc.perform(get("/transactions")
+                        .param("description", "freeLanCe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(1)))
+                .andExpect(jsonPath("$.totalRecords", is(1)))
+                .andExpect(jsonPath("$.transactions[0].amount", is(75.0)));
+    }
+
+    @Test
     public void shouldCacheBalanceCalculation() throws Exception {
         createAndSaveTransaction("Aylin", BigDecimal.valueOf(100), "Income", "Salary");
 
