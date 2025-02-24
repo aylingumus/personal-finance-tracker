@@ -1,7 +1,6 @@
 package com.example.personalfinancetracker.exception;
 
 import com.example.personalfinancetracker.dto.ErrorResponseDTO;
-import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -18,13 +17,6 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-    @ExceptionHandler(OptimisticLockException.class)
-    public ResponseEntity<ErrorResponseDTO> handleOptimisticLockException(OptimisticLockException ex, WebRequest request) {
-        log.error("Concurrent update error: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponseDTO("Concurrent update error: " + ex.getMessage()));
-    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
