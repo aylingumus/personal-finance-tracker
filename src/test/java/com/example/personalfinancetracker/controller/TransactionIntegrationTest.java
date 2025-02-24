@@ -112,6 +112,29 @@ public class TransactionIntegrationTest {
     }
 
     @Test
+    public void shouldReturnCorrectBalanceForAccountWithoutGivenDate() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCategory("Income");
+        tx1.setDescription("Salary");
+        transactionRepository.saveAndFlush(tx1);
+
+        var tx2 = new Transaction();
+        tx2.setAccountName("Aylin");
+        tx2.setAmount(BigDecimal.valueOf(-20));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 2, 15, 12, 0));
+        tx2.setCategory("Expense");
+        tx2.setDescription("Groceries");
+        transactionRepository.saveAndFlush(tx2);
+
+        mockMvc.perform(get("/transactions/balance/Aylin"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("30.00"));
+    }
+
+    @Test
     public void shouldUpdateTransactionSuccessfully() throws Exception {
         var tx = new Transaction();
         tx.setAccountName("Aylin");
@@ -210,7 +233,7 @@ public class TransactionIntegrationTest {
                         .param("page", "0")
                         .param("size", "10")
                         .param("sortBy", "createdAt")
-                        .param("sortDir", "asc"))
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions", hasSize(2)))
                 .andExpect(jsonPath("$.totalRecords", is(2)))
