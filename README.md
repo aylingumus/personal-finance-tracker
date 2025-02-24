@@ -63,3 +63,8 @@ mvn test
 The application includes:
 - Unit tests for services
 - Integration tests for controllers
+
+## Future Improvements
+
+- **Relational DB & Transaction Management**: I'm currently using an in-memory H2 database for simplicity. In a production environment, I would switch to a robust relational database (e.g., PostgreSQL) and ensure consistent transaction management.
+- **Extended Currency Support**: The application currently treats currency as global. I can extend it to support multiple currencies or conversions if needed.
