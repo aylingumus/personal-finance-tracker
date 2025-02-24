@@ -45,14 +45,14 @@ public class TransactionErrorServiceTest {
     @BeforeEach
     void setUp() {
         requestDTO = new TransactionRequestDTO();
-        requestDTO.setAccountName("TestAccount");
+        requestDTO.setAccountName("Aylin");
         requestDTO.setAmount(new BigDecimal("100.00"));
         requestDTO.setCategory("Food");
         requestDTO.setDescription("Lunch");
 
         transaction = new Transaction();
         transaction.setId(1L);
-        transaction.setAccountName("TestAccount");
+        transaction.setAccountName("Aylin");
         transaction.setAmount(new BigDecimal("100.00"));
         transaction.setCategory("Food");
         transaction.setDescription("Lunch");
@@ -65,7 +65,7 @@ public class TransactionErrorServiceTest {
         when(transactionRepository.findById(any(Long.class))).thenReturn(Optional.empty());
 
         TransactionRequestDTO updateRequest = new TransactionRequestDTO();
-        updateRequest.setAccountName("TestAccount");
+        updateRequest.setAccountName("Aylin");
         updateRequest.setAmount(new BigDecimal("150.00"));
         updateRequest.setCategory("Food");
         updateRequest.setDescription("Updated Lunch");
@@ -77,11 +77,11 @@ public class TransactionErrorServiceTest {
 
     @Test
     void shouldThrowExceptionWhenCalculatingBalanceForNonExistentAccount() {
-        when(transactionRepository.findByAccountName("NonExistentAccount"))
+        when(transactionRepository.findByAccountName("Alien"))
                 .thenReturn(Collections.emptyList());
 
         assertThrows(TransactionNotFoundException.class, () ->
-                transactionService.calculateBalance("NonExistentAccount", LocalDate.now())
+                transactionService.calculateBalance("Alien", LocalDate.now())
         );
     }
 

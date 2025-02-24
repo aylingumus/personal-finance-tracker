@@ -48,14 +48,14 @@ class TransactionServiceTest {
     @BeforeEach
     void setUp() {
         requestDTO = new TransactionRequestDTO();
-        requestDTO.setAccountName("TestAccount");
+        requestDTO.setAccountName("Aylin");
         requestDTO.setAmount(new BigDecimal("100.00"));
         requestDTO.setCategory("Food");
         requestDTO.setDescription("Lunch");
 
         transaction = new Transaction();
         transaction.setId(1L);
-        transaction.setAccountName("TestAccount");
+        transaction.setAccountName("Aylin");
         transaction.setAmount(new BigDecimal("100.00"));
         transaction.setCategory("Food");
         transaction.setDescription("Lunch");
@@ -93,15 +93,15 @@ class TransactionServiceTest {
 
     @Test
     void shouldCalculateBalanceForAccountOnGivenDate() {
-        when(transactionRepository.findByAccountName(eq("TestAccount")))
+        when(transactionRepository.findByAccountName(eq("Aylin")))
                 .thenReturn(Collections.singletonList(transaction));
-        when(transactionRepository.calculateBalanceForAccount(eq("TestAccount"), any(LocalDate.class)))
+        when(transactionRepository.calculateBalanceForAccount(eq("Aylin"), any(LocalDate.class)))
                 .thenReturn(new BigDecimal("300.00"));
 
-        BigDecimal balance = transactionService.calculateBalance("TestAccount", LocalDate.now());
+        BigDecimal balance = transactionService.calculateBalance("Aylin", LocalDate.now());
 
         assertEquals(new BigDecimal("300.00"), balance);
-        verify(transactionRepository).calculateBalanceForAccount(eq("TestAccount"), any(LocalDate.class));
+        verify(transactionRepository).calculateBalanceForAccount(eq("Aylin"), any(LocalDate.class));
     }
 
     @Test
@@ -134,15 +134,15 @@ class TransactionServiceTest {
         Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList());
 
         when(customTransactionRepository.findTransactionsByCriteria(
-                eq("NonExistent"), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
+                eq("Alien"), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
         ).thenReturn(emptyPage);
 
         when(customTransactionRepository.calculateTotalBalanceByCriteria(
-                eq("NonExistent"), any(), any(), any(), any(), any(), any())
+                eq("Alien"), any(), any(), any(), any(), any(), any())
         ).thenReturn(BigDecimal.ZERO);
 
         TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
-        criteria.setAccountName("NonExistent");
+        criteria.setAccountName("Alien");
 
         var result = transactionService.searchTransactions(
                 criteria, 0, 10, "createdAt", "desc"
@@ -159,17 +159,17 @@ class TransactionServiceTest {
         Page<Transaction> page = new PageImpl<>(Arrays.asList(transaction, createTransaction(new BigDecimal("200.00"))));
 
         when(customTransactionRepository.findTransactionsByCriteria(
-                eq("TestAccount"), eq(null), eq(null),
+                eq("Aylin"), eq(null), eq(null),
                 eq(LocalDate.of(2025, 3, 1)), eq(null), eq(null), eq(null), any(PageRequest.class))
         ).thenReturn(page);
 
         when(customTransactionRepository.calculateTotalBalanceByCriteria(
-                eq("TestAccount"), eq(null), eq(null),
+                eq("Aylin"), eq(null), eq(null),
                 eq(LocalDate.of(2025, 3, 1)), eq(null), eq(null), eq(null))
         ).thenReturn(new BigDecimal("300.00"));
 
         TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
-        criteria.setAccountName("TestAccount");
+        criteria.setAccountName("Aylin");
         criteria.setFromDate(LocalDate.of(2025, 3, 1));
 
         var result = transactionService.searchTransactions(
@@ -186,17 +186,17 @@ class TransactionServiceTest {
         Page<Transaction> page = new PageImpl<>(Collections.singletonList(transaction));
 
         when(customTransactionRepository.findTransactionsByCriteria(
-                eq("TestAccount"), eq(null), eq(null),
+                eq("Aylin"), eq(null), eq(null),
                 eq(null), eq(LocalDate.of(2025, 3, 2)), eq(null), eq(null), any(PageRequest.class))
         ).thenReturn(page);
 
         when(customTransactionRepository.calculateTotalBalanceByCriteria(
-                eq("TestAccount"), eq(null), eq(null),
+                eq("Aylin"), eq(null), eq(null),
                 eq(null), eq(LocalDate.of(2025, 3, 2)), eq(null), eq(null))
         ).thenReturn(new BigDecimal("100.00"));
 
         TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
-        criteria.setAccountName("TestAccount");
+        criteria.setAccountName("Aylin");
         criteria.setToDate(LocalDate.of(2025, 3, 2));
 
         var result = transactionService.searchTransactions(
@@ -211,7 +211,7 @@ class TransactionServiceTest {
     private Transaction createTransaction(BigDecimal amount) {
         Transaction t = new Transaction();
         t.setAmount(amount);
-        t.setAccountName("TestAccount");
+        t.setAccountName("Aylin");
         t.setCreatedAt(LocalDateTime.now());
         return t;
     }
