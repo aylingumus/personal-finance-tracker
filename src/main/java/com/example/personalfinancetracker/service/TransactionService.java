@@ -6,6 +6,7 @@ import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
 import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
+import com.example.personalfinancetracker.repository.CustomTransactionRepository;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final CustomTransactionRepository customTransactionRepository;
     private final TransactionMapper transactionMapper;
 
 
@@ -88,7 +90,7 @@ public class TransactionService {
                 : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
 
-        Page<Transaction> pageResult = transactionRepository.findTransactions(
+        Page<Transaction> pageResult = customTransactionRepository.findTransactionsByCriteria(
                 criteria.getAccountName(),
                 criteria.getMinAmount(),
                 criteria.getMaxAmount(),
@@ -103,7 +105,7 @@ public class TransactionService {
                 .map(transactionMapper::toDTO)
                 .collect(Collectors.toList());
 
-        BigDecimal totalBalance = transactionRepository.calculateTotalBalanceForTransactions(
+        BigDecimal totalBalance = customTransactionRepository.calculateTotalBalanceByCriteria(
                 criteria.getAccountName(),
                 criteria.getMinAmount(),
                 criteria.getMaxAmount(),

@@ -2,6 +2,7 @@ package com.example.personalfinancetracker.controller;
 
 import com.example.personalfinancetracker.domain.Transaction;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
+import com.example.personalfinancetracker.repository.CustomTransactionRepository;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,9 @@ public class TransactionIntegrationTest {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+    @Autowired
+    private CustomTransactionRepository customTransactionRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -168,7 +172,7 @@ public class TransactionIntegrationTest {
     }
 
     @Test
-    public void shouldFilterTransactionsByCategoryAndDateSortByAsc() throws Exception {
+    public void shouldSearchTransactionsByCategoryAndDateSortByAsc() throws Exception {
         var tx1 = new Transaction();
         tx1.setAccountName("Aylin");
         tx1.setAmount(BigDecimal.valueOf(50));
@@ -209,7 +213,7 @@ public class TransactionIntegrationTest {
     }
 
     @Test
-    public void shouldFilterTransactionsByCategoryAndDateSortByDesc() throws Exception {
+    public void shouldSearchTransactionsByCategoryAndDateSortByDesc() throws Exception {
         var tx1 = new Transaction();
         tx1.setAccountName("Aylin");
         tx1.setAmount(BigDecimal.valueOf(50));
@@ -247,6 +251,189 @@ public class TransactionIntegrationTest {
                 .andExpect(jsonPath("$.transactions", hasSize(2)))
                 .andExpect(jsonPath("$.totalRecords", is(2)))
                 .andExpect(jsonPath("$.totalBalance", is(30.0)));
+    }
+
+    @Test
+    public void shouldReturnTransactionsSortedByCreatedAtAsc() throws Exception {
+        Transaction tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 3, 1, 9, 0));
+        tx1.setCategory("Food");
+        tx1.setDescription("Breakfast");
+        transactionRepository.saveAndFlush(tx1);
+
+        Transaction tx2 = new Transaction();
+        tx2.setAccountName("Aylin");
+        tx2.setAmount(BigDecimal.valueOf(75));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 3, 1, 11, 0));
+        tx2.setCategory("Food");
+        tx2.setDescription("Dinner");
+        transactionRepository.saveAndFlush(tx2);
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(2)))
+                .andExpect(jsonPath("$.transactions[0].createdAt", containsString("2025-03-01T09")))
+                .andExpect(jsonPath("$.transactions[1].createdAt", containsString("2025-03-01T11")));
+    }
+
+
+    @Test
+    public void shouldSearchTransactionsWithNoCriteriaReturnsAll() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 1, 10, 10, 0));
+        tx1.setCategory("Income");
+        tx1.setDescription("Salary");
+        transactionRepository.saveAndFlush(tx1);
+
+        var tx2 = new Transaction();
+        tx2.setAccountName("Nazli");
+        tx2.setAmount(BigDecimal.valueOf(20));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 1, 11, 12, 0));
+        tx2.setCategory("Income");
+        tx2.setDescription("Gift");
+        transactionRepository.saveAndFlush(tx2);
+
+        mockMvc.perform(get("/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(2)))
+                .andExpect(jsonPath("$.totalRecords", is(2)));
+    }
+
+    @Test
+    public void shouldSearchTransactionsWithNoMatchingCriteriaReturnsEmpty() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCategory("Income");
+        tx1.setDescription("Salary");
+        transactionRepository.saveAndFlush(tx1);
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "NonExistent")
+                        .param("minAmount", "1000")
+                        .param("fromDate", "2030-01-01")
+                        .param("toDate", "2030-01-31")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(0)))
+                .andExpect(jsonPath("$.totalRecords", is(0)));
+    }
+
+    @Test
+    public void shouldSearchTransactionsWithMinAmountFilter() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 1, 10, 10, 0));
+        tx1.setCategory("Expense");
+        tx1.setDescription("Groceries");
+        transactionRepository.saveAndFlush(tx1);
+
+        var tx2 = new Transaction();
+        tx2.setAccountName("Aylin");
+        tx2.setAmount(BigDecimal.valueOf(150));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 1, 15, 12, 0));
+        tx2.setCategory("Income");
+        tx2.setDescription("Salary");
+        transactionRepository.saveAndFlush(tx2);
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("minAmount", "100")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(1)))
+                .andExpect(jsonPath("$.totalRecords", is(1)))
+                .andExpect(jsonPath("$.totalBalance", is(150.0)));
+    }
+
+    @Test
+    public void shouldSearchTransactionsWithMaxAmountFilter() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(100));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 3, 1, 10, 0));
+        tx1.setCategory("Food");
+        tx1.setDescription("Lunch");
+        transactionRepository.saveAndFlush(tx1);
+
+        var tx2 = new Transaction();
+        tx2.setAccountName("Aylin");
+        tx2.setAmount(BigDecimal.valueOf(200));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 3, 2, 10, 0));
+        tx2.setCategory("Food");
+        tx2.setDescription("Dinner");
+        transactionRepository.saveAndFlush(tx2);
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("maxAmount", "150")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(1)))
+                .andExpect(jsonPath("$.totalRecords", is(1)))
+                .andExpect(jsonPath("$.totalBalance", is(100.0)));
+    }
+
+    @Test
+    public void shouldSearchTransactionsWithFromDateAfterToDateReturnsEmpty() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCategory("Income");
+        tx1.setDescription("Salary");
+        transactionRepository.saveAndFlush(tx1);
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("fromDate", "2025-03-01")
+                        .param("toDate", "2025-02-01")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(0)))
+                .andExpect(jsonPath("$.totalRecords", is(0)))
+                .andExpect(jsonPath("$.totalBalance", is(0)));
+    }
+
+    @Test
+    public void shouldSearchTransactionsWithOnlyDescriptionParam() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(75));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCategory("Income");
+        tx1.setDescription("Freelance job");
+        transactionRepository.saveAndFlush(tx1);
+
+        var tx2 = new Transaction();
+        tx2.setAccountName("Aylin");
+        tx2.setAmount(BigDecimal.valueOf(25));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 2, 12, 10, 0));
+        tx2.setCategory("Expense");
+        tx2.setDescription("Restaurant lunch");
+        transactionRepository.saveAndFlush(tx2);
+
+        mockMvc.perform(get("/transactions")
+                        .param("description", "freeLanCe")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(1)))
+                .andExpect(jsonPath("$.totalRecords", is(1)))
+                .andExpect(jsonPath("$.totalBalance", is(75.0)));
     }
 
     @Test

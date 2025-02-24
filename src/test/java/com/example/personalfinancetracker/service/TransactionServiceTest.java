@@ -5,6 +5,7 @@ import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
 import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
+import com.example.personalfinancetracker.repository.CustomTransactionRepository;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,9 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,6 +32,9 @@ class TransactionServiceTest {
 
     @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
+    private CustomTransactionRepository customTransactionRepository;
 
     @Mock
     private TransactionMapper transactionMapper;
@@ -122,7 +124,7 @@ class TransactionServiceTest {
         List<Transaction> transactions = Collections.singletonList(transaction);
         Page<Transaction> page = new PageImpl<>(transactions);
 
-        when(transactionRepository.findTransactions(
+        when(customTransactionRepository.findTransactionsByCriteria(
                 any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
         ).thenReturn(page);
 
@@ -147,6 +149,80 @@ class TransactionServiceTest {
         assertEquals(1, result.getTotalRecords());
     }
 
+    @Test
+    void shouldReturnAllTransactionsWhenNoCriteriaProvided() {
+        List<Transaction> allTransactions = Arrays.asList(transaction, createTransaction(new BigDecimal("200.00")));
+        Page<Transaction> page = new PageImpl<>(allTransactions);
+
+        when(customTransactionRepository.findTransactionsByCriteria(
+                eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), any(PageRequest.class))
+        ).thenReturn(page);
+
+        when(customTransactionRepository.calculateTotalBalanceByCriteria(
+                eq(null), eq(null), eq(null), eq(null), eq(null), eq(null), eq(null))
+        ).thenReturn(new BigDecimal("250.00"));
+
+        TransactionSearchCriteriaDTO emptyCriteria = new TransactionSearchCriteriaDTO();
+
+        var result = transactionService.searchTransactions(
+                emptyCriteria, 0, 10, "createdAt", "desc"
+        );
+
+        assertNotNull(result);
+        assertEquals(2, result.getTransactions().size());
+        assertEquals(2, result.getTotalRecords());
+        assertEquals(new BigDecimal("250.00"), result.getTotalBalance());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenNoTransactionsMatchCriteria() {
+        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList());
+
+        when(customTransactionRepository.findTransactionsByCriteria(
+                eq("NonExistent"), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
+        ).thenReturn(emptyPage);
+
+        when(customTransactionRepository.calculateTotalBalanceByCriteria(
+                eq("NonExistent"), any(), any(), any(), any(), any(), any())
+        ).thenReturn(BigDecimal.ZERO);
+
+        TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
+        criteria.setAccountName("NonExistent");
+
+        var result = transactionService.searchTransactions(
+                criteria, 0, 10, "createdAt", "desc"
+        );
+
+        assertNotNull(result);
+        assertEquals(0, result.getTransactions().size());
+        assertEquals(0, result.getTotalRecords());
+        assertEquals(BigDecimal.ZERO, result.getTotalBalance());
+    }
+
+    @Test
+    void shouldSearchTransactionsWithFromDateAfterToDateReturnsEmpty() {
+        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList());
+
+        when(customTransactionRepository.findTransactionsByCriteria(
+                any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
+        ).thenReturn(emptyPage);
+
+        when(customTransactionRepository.calculateTotalBalanceByCriteria(
+                any(), any(), any(), any(), any(), any(), any())
+        ).thenReturn(BigDecimal.ZERO);
+
+        TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
+        criteria.setFromDate(LocalDate.of(2025, 3, 1));
+        criteria.setToDate(LocalDate.of(2025, 2, 1));
+
+        var result = transactionService.searchTransactions(criteria, 0, 10, "createdAt", "asc");
+
+        assertNotNull(result);
+        assertEquals(0, result.getTransactions().size());
+        assertEquals(0, result.getTotalRecords());
+        assertEquals(BigDecimal.ZERO, result.getTotalBalance());
+    }
+
     private Transaction createTransaction(BigDecimal amount) {
         Transaction t = new Transaction();
         t.setAmount(amount);
@@ -154,4 +230,5 @@ class TransactionServiceTest {
         t.setCreatedAt(LocalDateTime.now());
         return t;
     }
+
 }
