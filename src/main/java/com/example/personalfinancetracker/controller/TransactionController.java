@@ -3,6 +3,7 @@ package com.example.personalfinancetracker.controller;
 import com.example.personalfinancetracker.dto.PagedTransactionResponseDTO;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
+import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
 import com.example.personalfinancetracker.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,22 +58,16 @@ public class TransactionController {
     }
 
     // TO-DO: Consider adding filtration feature based on days, weeks, months and years
-    // TO-DO: Create a FilterRequestDTO - @RequestParam object - it is mapping automatically
     @GetMapping
     public ResponseEntity<PagedTransactionResponseDTO> searchTransactions(
-            @RequestParam(required = false) String accountName,
-            @RequestParam(required = false) BigDecimal minAmount,
-            @RequestParam(required = false) BigDecimal maxAmount,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) String description,
+            @ModelAttribute TransactionSearchCriteriaDTO searchCriteria,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        PagedTransactionResponseDTO response = transactionService.getFilteredTransactions(
-                accountName, minAmount, maxAmount, fromDate, toDate, category, description, page, size, sortBy, sortDir);
+
+        PagedTransactionResponseDTO response = transactionService.searchTransactions(
+                searchCriteria, page, size, sortBy, sortDir);
         return ResponseEntity.ok(response);
     }
 }

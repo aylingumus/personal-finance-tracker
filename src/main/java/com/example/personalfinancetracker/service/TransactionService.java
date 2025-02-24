@@ -4,6 +4,7 @@ import com.example.personalfinancetracker.domain.Transaction;
 import com.example.personalfinancetracker.dto.PagedTransactionResponseDTO;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
+import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -79,15 +80,8 @@ public class TransactionService {
 //        }
     }
 
-    // TO-DO: Turn the params into an object
-    public PagedTransactionResponseDTO getFilteredTransactions(
-            String accountName,
-            BigDecimal minAmount,
-            BigDecimal maxAmount,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String category,
-            String description,
+    public PagedTransactionResponseDTO searchTransactions(
+            TransactionSearchCriteriaDTO criteria,
             int page,
             int size,
             String sortBy,
@@ -99,7 +93,14 @@ public class TransactionService {
         PageRequest pageable = PageRequest.of(page, size, sort);
 
         Page<Transaction> pageResult = transactionRepository.findFilteredTransactions(
-                accountName, minAmount, maxAmount, fromDate, toDate, category, description, pageable
+                criteria.getAccountName(),
+                criteria.getMinAmount(),
+                criteria.getMaxAmount(),
+                criteria.getFromDate(),
+                criteria.getToDate(),
+                criteria.getCategory(),
+                criteria.getDescription(),
+                pageable
         );
 
         List<TransactionResponseDTO> transactions = pageResult.getContent().stream()

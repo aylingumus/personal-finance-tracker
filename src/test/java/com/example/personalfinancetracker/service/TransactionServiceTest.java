@@ -3,9 +3,9 @@ package com.example.personalfinancetracker.service;
 import com.example.personalfinancetracker.domain.Transaction;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.dto.TransactionResponseDTO;
+import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
 import com.example.personalfinancetracker.repository.TransactionRepository;
-import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -125,14 +125,17 @@ class TransactionServiceTest {
                 any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
         ).thenReturn(page);
 
-        var result = transactionService.getFilteredTransactions(
-                "TestAccount",
-                new BigDecimal("50.00"),
-                new BigDecimal("150.00"),
-                LocalDate.now().minusDays(7),
-                LocalDate.now(),
-                "Food",
-                "Lunch",
+        TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
+        criteria.setAccountName("TestAccount");
+        criteria.setMinAmount(new BigDecimal("50.00"));
+        criteria.setMaxAmount(new BigDecimal("150.00"));
+        criteria.setFromDate(LocalDate.now().minusDays(7));
+        criteria.setToDate(LocalDate.now());
+        criteria.setCategory("Food");
+        criteria.setDescription("Lunch");
+
+        var result = transactionService.searchTransactions(
+                criteria,
                 0,
                 10,
                 "createdAt",
