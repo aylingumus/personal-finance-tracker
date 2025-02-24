@@ -15,9 +15,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-// TO-DO: Consider adding API versioning
 @RestController
-@RequestMapping("/transactions")
+@RequestMapping("/api/v1/transactions")
 @RequiredArgsConstructor
 public class TransactionController {
 
