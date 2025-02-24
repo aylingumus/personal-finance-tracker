@@ -9,14 +9,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -32,6 +36,9 @@ public class TransactionIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private CacheManager cacheManager;
 
     @BeforeEach
     void setUp() {
@@ -113,6 +120,8 @@ public class TransactionIntegrationTest {
 
     @Test
     public void shouldReturnCorrectBalanceForAccountWithoutGivenDate() throws Exception {
+        Objects.requireNonNull(cacheManager.getCache("balanceCache")).clear();
+
         var tx1 = new Transaction();
         tx1.setAccountName("Aylin");
         tx1.setAmount(BigDecimal.valueOf(50));
@@ -238,5 +247,35 @@ public class TransactionIntegrationTest {
                 .andExpect(jsonPath("$.transactions", hasSize(2)))
                 .andExpect(jsonPath("$.totalRecords", is(2)))
                 .andExpect(jsonPath("$.totalBalance", is(30.0)));
+    }
+
+    @Test
+    public void shouldCacheBalanceCalculation() throws Exception {
+        Objects.requireNonNull(cacheManager.getCache("balanceCache")).clear();
+
+        Transaction tx = new Transaction();
+        tx.setAccountName("Aylin");
+        tx.setAmount(BigDecimal.valueOf(100));
+        tx.setCreatedAt(LocalDateTime.now());
+        tx.setCategory("Income");
+        tx.setDescription("Salary");
+        transactionRepository.saveAndFlush(tx);
+
+        // First call should calculate and cache the balance
+        mockMvc.perform(get("/transactions/balance/Aylin")
+                        .param("date", LocalDate.now().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string("100.00"));
+
+        // Second call should return the cached value
+        mockMvc.perform(get("/transactions/balance/Aylin")
+                        .param("date", LocalDate.now().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string("100.00"));
+
+        BigDecimal cachedBalance = Objects.requireNonNull(cacheManager.getCache("balanceCache"))
+                .get("Aylin_" + LocalDate.now().toString(), BigDecimal.class);
+        assertNotNull(cachedBalance);
+        assertEquals(new BigDecimal("100.00"), cachedBalance);
     }
 }
