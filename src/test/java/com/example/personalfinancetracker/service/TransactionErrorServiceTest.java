@@ -2,7 +2,10 @@ package com.example.personalfinancetracker.service;
 
 import com.example.personalfinancetracker.domain.Transaction;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
+import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
+import com.example.personalfinancetracker.exception.TransactionNotFoundException;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
+import com.example.personalfinancetracker.repository.CustomTransactionRepository;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,20 +31,26 @@ public class TransactionErrorServiceTest {
     private TransactionRepository transactionRepository;
 
     @Mock
+    private CustomTransactionRepository customTransactionRepository;
+
+    @Mock
     private TransactionMapper transactionMapper;
 
     @InjectMocks
     private TransactionService transactionService;
 
+    private TransactionRequestDTO requestDTO;
+    private Transaction transaction;
+
     @BeforeEach
     void setUp() {
-        TransactionRequestDTO requestDTO = new TransactionRequestDTO();
+        requestDTO = new TransactionRequestDTO();
         requestDTO.setAccountName("TestAccount");
         requestDTO.setAmount(new BigDecimal("100.00"));
         requestDTO.setCategory("Food");
         requestDTO.setDescription("Lunch");
 
-        Transaction transaction = new Transaction();
+        transaction = new Transaction();
         transaction.setId(1L);
         transaction.setAccountName("TestAccount");
         transaction.setAmount(new BigDecimal("100.00"));
@@ -59,10 +70,43 @@ public class TransactionErrorServiceTest {
         updateRequest.setCategory("Food");
         updateRequest.setDescription("Updated Lunch");
 
-        assertThrows(RuntimeException.class, () ->
+        assertThrows(TransactionNotFoundException.class, () ->
                 transactionService.updateTransaction(999L, updateRequest)
         );
     }
 
-    // TO-DO: Add balance without given date - null
+    @Test
+    void shouldThrowExceptionWhenCalculatingBalanceForNonExistentAccount() {
+        when(transactionRepository.findByAccountName("NonExistentAccount"))
+                .thenReturn(Collections.emptyList());
+
+        assertThrows(TransactionNotFoundException.class, () ->
+                transactionService.calculateBalance("NonExistentAccount", LocalDate.now())
+        );
+    }
+
+    @Test
+    void shouldThrowExceptionWhenRepositorySaveThrowsException() {
+        when(transactionMapper.toEntity(any(TransactionRequestDTO.class))).thenReturn(transaction);
+        when(transactionRepository.save(any(Transaction.class))).thenThrow(new RuntimeException("Database error"));
+
+        assertThrows(RuntimeException.class, () ->
+                transactionService.addTransaction(requestDTO)
+        );
+    }
+
+    @Test
+    void shouldThrowExceptionWhenSearchingWithInvalidParameters() {
+        when(customTransactionRepository.findTransactionsByCriteria(
+                any(), any(), any(), any(), any(), any(), any(), any())
+        ).thenThrow(new IllegalArgumentException("Invalid search parameters"));
+
+        TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
+        criteria.setMinAmount(new BigDecimal("100.00"));
+        criteria.setMaxAmount(new BigDecimal("50.00"));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.searchTransactions(criteria, 0, 10, "createdAt", "asc")
+        );
+    }
 }

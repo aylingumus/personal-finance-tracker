@@ -59,7 +59,7 @@ public class TransactionController {
     // TO-DO: Consider adding filtration feature based on days, weeks, months and years
     @GetMapping
     public ResponseEntity<PagedTransactionResponseDTO> searchTransactions(
-            @ModelAttribute TransactionSearchCriteriaDTO searchCriteria,
+            @Valid @ModelAttribute TransactionSearchCriteriaDTO searchCriteria,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,

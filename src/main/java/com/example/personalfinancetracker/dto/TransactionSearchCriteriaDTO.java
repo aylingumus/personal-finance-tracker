@@ -1,5 +1,6 @@
 package com.example.personalfinancetracker.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -20,4 +21,9 @@ public class TransactionSearchCriteriaDTO {
 
     private String category;
     private String description;
+
+    @AssertTrue(message = "From date cannot be after to date")
+    public boolean isDateRangeValid() {
+        return fromDate == null || toDate == null || !fromDate.isAfter(toDate);
+    }
 }

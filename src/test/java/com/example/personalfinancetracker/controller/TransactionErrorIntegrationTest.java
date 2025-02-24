@@ -61,8 +61,8 @@ public class TransactionErrorIntegrationTest {
         mockMvc.perform(put("/transactions/9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Transaction not found")));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", containsString("Transaction not found for id: 9999")));
     }
 
     @Test
@@ -72,5 +72,45 @@ public class TransactionErrorIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("Invalid parameter: date")));
+    }
+
+    @Test
+    public void shouldReturnErrorForNegativePageNumber() throws Exception {
+        mockMvc.perform(get("/transactions")
+                        .param("page", "-1")
+                        .param("size", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Page index must not be less than zero")));
+    }
+
+    @Test
+    public void shouldReturnErrorForInvalidDateRangeInSearch() throws Exception {
+        mockMvc.perform(get("/transactions")
+                        .param("fromDate", "2025-03-15")
+                        .param("toDate", "2025-02-15"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("From date cannot be after to date")));
+    }
+
+    @Test
+    public void shouldReturnErrorWhenRequestingBalanceForNonExistentAccount() throws Exception {
+        mockMvc.perform(get("/transactions/balance/NonExistentAccount"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", containsString("No transactions found for account: NonExistentAccount")));
+    }
+
+    @Test
+    public void shouldReturnErrorWhenUpdatingNonExistentTransactionById() throws Exception {
+        TransactionRequestDTO updateRequest = new TransactionRequestDTO();
+        updateRequest.setAccountName("Aylin");
+        updateRequest.setAmount(BigDecimal.valueOf(150.00));
+        updateRequest.setCategory("Income");
+        updateRequest.setDescription("Updated Salary");
+
+        mockMvc.perform(put("/transactions/9999")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", containsString("Transaction not found for id: 9999")));
     }
 }

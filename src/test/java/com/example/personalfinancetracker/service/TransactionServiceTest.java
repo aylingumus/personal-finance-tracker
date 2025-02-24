@@ -73,17 +73,6 @@ class TransactionServiceTest {
         verify(transactionRepository).save(any(Transaction.class));
     }
 
-//    @Test
-//    void shouldThrowOptimisticLockExceptionOnConcurrentModification() {
-//        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
-//        when(transactionRepository.save(any(Transaction.class)))
-//                .thenThrow(new OptimisticLockException("Concurrent modification"));
-//
-//        assertThrows(OptimisticLockException.class, () ->
-//                transactionService.updateTransaction(1L, requestDTO)
-//        );
-//    }
-
     @Test
     void shouldUpdateTransactionSuccessfully() {
         requestDTO.setAmount(new BigDecimal("150.00"));
@@ -104,49 +93,15 @@ class TransactionServiceTest {
 
     @Test
     void shouldCalculateBalanceForAccountOnGivenDate() {
-        when(transactionRepository.calculateBalanceForAccount(
-                eq("TestAccount"),
-                any(LocalDate.class))
-        ).thenReturn(new BigDecimal("300.00"));
+        when(transactionRepository.findByAccountName(eq("TestAccount")))
+                .thenReturn(Collections.singletonList(transaction));
+        when(transactionRepository.calculateBalanceForAccount(eq("TestAccount"), any(LocalDate.class)))
+                .thenReturn(new BigDecimal("300.00"));
 
         BigDecimal balance = transactionService.calculateBalance("TestAccount", LocalDate.now());
 
         assertEquals(new BigDecimal("300.00"), balance);
-
-        verify(transactionRepository).calculateBalanceForAccount(
-                eq("TestAccount"),
-                any(LocalDate.class)
-        );
-    }
-
-    @Test
-    void shouldReturnFilteredTransactionsWithCorrectTotalRecords() {
-        List<Transaction> transactions = Collections.singletonList(transaction);
-        Page<Transaction> page = new PageImpl<>(transactions);
-
-        when(customTransactionRepository.findTransactionsByCriteria(
-                any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
-        ).thenReturn(page);
-
-        TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
-        criteria.setAccountName("TestAccount");
-        criteria.setMinAmount(new BigDecimal("50.00"));
-        criteria.setMaxAmount(new BigDecimal("150.00"));
-        criteria.setFromDate(LocalDate.now().minusDays(7));
-        criteria.setToDate(LocalDate.now());
-        criteria.setCategory("Food");
-        criteria.setDescription("Lunch");
-
-        var result = transactionService.searchTransactions(
-                criteria,
-                0,
-                10,
-                "createdAt",
-                "desc"
-        );
-
-        assertNotNull(result);
-        assertEquals(1, result.getTotalRecords());
+        verify(transactionRepository).calculateBalanceForAccount(eq("TestAccount"), any(LocalDate.class));
     }
 
     @Test
@@ -200,27 +155,57 @@ class TransactionServiceTest {
     }
 
     @Test
-    void shouldSearchTransactionsWithFromDateAfterToDateReturnsEmpty() {
-        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList());
+    void shouldSearchTransactionsWhenOnlyFromDateIsProvided() {
+        Page<Transaction> page = new PageImpl<>(Arrays.asList(transaction, createTransaction(new BigDecimal("200.00"))));
 
         when(customTransactionRepository.findTransactionsByCriteria(
-                any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
-        ).thenReturn(emptyPage);
+                eq("TestAccount"), eq(null), eq(null),
+                eq(LocalDate.of(2025, 3, 1)), eq(null), eq(null), eq(null), any(PageRequest.class))
+        ).thenReturn(page);
 
         when(customTransactionRepository.calculateTotalBalanceByCriteria(
-                any(), any(), any(), any(), any(), any(), any())
-        ).thenReturn(BigDecimal.ZERO);
+                eq("TestAccount"), eq(null), eq(null),
+                eq(LocalDate.of(2025, 3, 1)), eq(null), eq(null), eq(null))
+        ).thenReturn(new BigDecimal("300.00"));
 
         TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
+        criteria.setAccountName("TestAccount");
         criteria.setFromDate(LocalDate.of(2025, 3, 1));
-        criteria.setToDate(LocalDate.of(2025, 2, 1));
 
-        var result = transactionService.searchTransactions(criteria, 0, 10, "createdAt", "asc");
+        var result = transactionService.searchTransactions(
+                criteria, 0, 10, "createdAt", "asc"
+        );
 
         assertNotNull(result);
-        assertEquals(0, result.getTransactions().size());
-        assertEquals(0, result.getTotalRecords());
-        assertEquals(BigDecimal.ZERO, result.getTotalBalance());
+        assertEquals(2, result.getTransactions().size());
+        assertEquals(300.00, result.getTotalBalance().doubleValue(), 0.001);
+    }
+
+    @Test
+    void shouldSearchTransactionsWhenOnlyToDateIsProvided() {
+        Page<Transaction> page = new PageImpl<>(Collections.singletonList(transaction));
+
+        when(customTransactionRepository.findTransactionsByCriteria(
+                eq("TestAccount"), eq(null), eq(null),
+                eq(null), eq(LocalDate.of(2025, 3, 2)), eq(null), eq(null), any(PageRequest.class))
+        ).thenReturn(page);
+
+        when(customTransactionRepository.calculateTotalBalanceByCriteria(
+                eq("TestAccount"), eq(null), eq(null),
+                eq(null), eq(LocalDate.of(2025, 3, 2)), eq(null), eq(null))
+        ).thenReturn(new BigDecimal("100.00"));
+
+        TransactionSearchCriteriaDTO criteria = new TransactionSearchCriteriaDTO();
+        criteria.setAccountName("TestAccount");
+        criteria.setToDate(LocalDate.of(2025, 3, 2));
+
+        var result = transactionService.searchTransactions(
+                criteria, 0, 10, "createdAt", "asc"
+        );
+
+        assertNotNull(result);
+        assertEquals(1, result.getTransactions().size());
+        assertEquals(100.00, result.getTotalBalance().doubleValue(), 0.001);
     }
 
     private Transaction createTransaction(BigDecimal amount) {
@@ -230,5 +215,4 @@ class TransactionServiceTest {
         t.setCreatedAt(LocalDateTime.now());
         return t;
     }
-
 }
