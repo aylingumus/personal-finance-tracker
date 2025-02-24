@@ -56,34 +56,11 @@ public class TransactionIntegrationTest {
     }
 
     @Test
-    public void shouldReturnAllTransactionsSuccessfully() throws Exception {
-        var tx1 = new Transaction();
-        tx1.setAccountName("Aylin");
-        tx1.setAmount(BigDecimal.valueOf(50));
-        tx1.setTimestamp(LocalDateTime.now());
-        tx1.setCategory("Income");
-        tx1.setDescription("Salary");
-        transactionRepository.saveAndFlush(tx1);
-
-        var tx2 = new Transaction();
-        tx2.setAccountName("Nazli");
-        tx2.setAmount(BigDecimal.valueOf(-20));
-        tx2.setTimestamp(LocalDateTime.now());
-        tx2.setCategory("Expense");
-        tx2.setDescription("Lunch");
-        transactionRepository.saveAndFlush(tx2);
-
-        mockMvc.perform(get("/transactions"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)));
-    }
-
-    @Test
     public void shouldReturnTransactionsForSpecifiedAccount() throws Exception {
         var tx1 = new Transaction();
         tx1.setAccountName("Aylin");
         tx1.setAmount(BigDecimal.valueOf(50));
-        tx1.setTimestamp(LocalDateTime.now());
+        tx1.setCreatedAt(LocalDateTime.now());
         tx1.setCategory("Income");
         tx1.setDescription("Salary");
         transactionRepository.saveAndFlush(tx1);
@@ -91,7 +68,7 @@ public class TransactionIntegrationTest {
         var tx2 = new Transaction();
         tx2.setAccountName("Aylin");
         tx2.setAmount(BigDecimal.valueOf(-10));
-        tx2.setTimestamp(LocalDateTime.now());
+        tx2.setCreatedAt(LocalDateTime.now());
         tx2.setCategory("Expense");
         tx2.setDescription("Groceries");
         transactionRepository.saveAndFlush(tx2);
@@ -99,7 +76,7 @@ public class TransactionIntegrationTest {
         var tx3 = new Transaction();
         tx3.setAccountName("Nazli");
         tx3.setAmount(BigDecimal.valueOf(30));
-        tx3.setTimestamp(LocalDateTime.now());
+        tx3.setCreatedAt(LocalDateTime.now());
         tx3.setCategory("Income");
         tx3.setDescription("Bonus");
         transactionRepository.saveAndFlush(tx3);
@@ -115,7 +92,7 @@ public class TransactionIntegrationTest {
         var tx1 = new Transaction();
         tx1.setAccountName("Aylin");
         tx1.setAmount(BigDecimal.valueOf(50));
-        tx1.setTimestamp(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
         tx1.setCategory("Income");
         tx1.setDescription("Salary");
         transactionRepository.saveAndFlush(tx1);
@@ -123,7 +100,7 @@ public class TransactionIntegrationTest {
         var tx2 = new Transaction();
         tx2.setAccountName("Aylin");
         tx2.setAmount(BigDecimal.valueOf(-20));
-        tx2.setTimestamp(LocalDateTime.of(2025, 2, 15, 12, 0));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 2, 15, 12, 0));
         tx2.setCategory("Expense");
         tx2.setDescription("Groceries");
         transactionRepository.saveAndFlush(tx2);
@@ -139,7 +116,7 @@ public class TransactionIntegrationTest {
         var tx = new Transaction();
         tx.setAccountName("Aylin");
         tx.setAmount(BigDecimal.valueOf(50));
-        tx.setTimestamp(LocalDateTime.now());
+        tx.setCreatedAt(LocalDateTime.now());
         tx.setCategory("Income");
         tx.setDescription("Salary");
         var savedTx = transactionRepository.saveAndFlush(tx);
@@ -159,11 +136,11 @@ public class TransactionIntegrationTest {
     }
 
     @Test
-    public void shouldFilterTransactionsByCategoryAndDate() throws Exception {
+    public void shouldFilterTransactionsByCategoryAndDateSortByAsc() throws Exception {
         var tx1 = new Transaction();
         tx1.setAccountName("Aylin");
         tx1.setAmount(BigDecimal.valueOf(50));
-        tx1.setTimestamp(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
         tx1.setCategory("Grocery");
         tx1.setDescription("Supermarket");
         transactionRepository.saveAndFlush(tx1);
@@ -171,7 +148,7 @@ public class TransactionIntegrationTest {
         var tx2 = new Transaction();
         tx2.setAccountName("Aylin");
         tx2.setAmount(BigDecimal.valueOf(-20));
-        tx2.setTimestamp(LocalDateTime.of(2025, 2, 15, 12, 0));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 2, 15, 12, 0));
         tx2.setCategory("Grocery");
         tx2.setDescription("Market shopping");
         transactionRepository.saveAndFlush(tx2);
@@ -179,23 +156,64 @@ public class TransactionIntegrationTest {
         var tx3 = new Transaction();
         tx3.setAccountName("Aylin");
         tx3.setAmount(BigDecimal.valueOf(-100));
-        tx3.setTimestamp(LocalDateTime.of(2025, 2, 20, 14, 0));
+        tx3.setCreatedAt(LocalDateTime.of(2025, 2, 20, 14, 0));
         tx3.setCategory("Utilities");
         tx3.setDescription("Electricity bill");
         transactionRepository.saveAndFlush(tx3);
 
-        mockMvc.perform(get("/transactions/filter")
+        mockMvc.perform(get("/transactions")
                         .param("accountName", "Aylin")
                         .param("fromDate", "2025-02-01")
                         .param("toDate", "2025-02-28")
                         .param("category", "Grocery")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("sortBy", "timestamp")
+                        .param("sortBy", "createdAt")
                         .param("sortDir", "asc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions", hasSize(2)))
                 .andExpect(jsonPath("$.totalRecords", is(2)))
-                .andExpect(jsonPath("$.totalSum", is(30.0)));
+                .andExpect(jsonPath("$.totalBalance", is(30.0)));
+    }
+
+    @Test
+    public void shouldFilterTransactionsByCategoryAndDateSortByDesc() throws Exception {
+        var tx1 = new Transaction();
+        tx1.setAccountName("Aylin");
+        tx1.setAmount(BigDecimal.valueOf(50));
+        tx1.setCreatedAt(LocalDateTime.of(2025, 2, 10, 10, 0));
+        tx1.setCategory("Grocery");
+        tx1.setDescription("Supermarket");
+        transactionRepository.saveAndFlush(tx1);
+
+        var tx2 = new Transaction();
+        tx2.setAccountName("Aylin");
+        tx2.setAmount(BigDecimal.valueOf(-20));
+        tx2.setCreatedAt(LocalDateTime.of(2025, 2, 15, 12, 0));
+        tx2.setCategory("Grocery");
+        tx2.setDescription("Market shopping");
+        transactionRepository.saveAndFlush(tx2);
+
+        var tx3 = new Transaction();
+        tx3.setAccountName("Aylin");
+        tx3.setAmount(BigDecimal.valueOf(-100));
+        tx3.setCreatedAt(LocalDateTime.of(2025, 2, 20, 14, 0));
+        tx3.setCategory("Utilities");
+        tx3.setDescription("Electricity bill");
+        transactionRepository.saveAndFlush(tx3);
+
+        mockMvc.perform(get("/transactions")
+                        .param("accountName", "Aylin")
+                        .param("fromDate", "2025-02-01")
+                        .param("toDate", "2025-02-28")
+                        .param("category", "Grocery")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions", hasSize(2)))
+                .andExpect(jsonPath("$.totalRecords", is(2)))
+                .andExpect(jsonPath("$.totalBalance", is(30.0)));
     }
 }

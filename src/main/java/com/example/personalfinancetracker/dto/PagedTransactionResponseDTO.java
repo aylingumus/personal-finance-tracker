@@ -9,5 +9,5 @@ import java.util.List;
 public class PagedTransactionResponseDTO {
     private List<TransactionResponseDTO> transactions;
     private long totalRecords;
-    private BigDecimal totalSum;
+    private BigDecimal totalBalance;
 }

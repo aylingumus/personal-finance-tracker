@@ -1,53 +1,153 @@
 package com.example.personalfinancetracker.service;
 
 import com.example.personalfinancetracker.domain.Transaction;
+import com.example.personalfinancetracker.dto.TransactionRequestDTO;
+import com.example.personalfinancetracker.dto.TransactionResponseDTO;
+import com.example.personalfinancetracker.mapper.TransactionMapper;
 import com.example.personalfinancetracker.repository.TransactionRepository;
+import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@Transactional
-public class TransactionServiceTest {
+@ExtendWith(MockitoExtension.class)
+class TransactionServiceTest {
 
-    @Autowired
+    @Mock
+    private TransactionRepository transactionRepository;
+
+    @Mock
+    private TransactionMapper transactionMapper;
+
+    @InjectMocks
     private TransactionService transactionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private TransactionRequestDTO requestDTO;
+    private Transaction transaction;
 
     @BeforeEach
     void setUp() {
-        transactionRepository.deleteAll();
+        requestDTO = new TransactionRequestDTO();
+        requestDTO.setAccountName("TestAccount");
+        requestDTO.setAmount(new BigDecimal("100.00"));
+        requestDTO.setCategory("Food");
+        requestDTO.setDescription("Lunch");
+
+        transaction = new Transaction();
+        transaction.setId(1L);
+        transaction.setAccountName("TestAccount");
+        transaction.setAmount(new BigDecimal("100.00"));
+        transaction.setCategory("Food");
+        transaction.setDescription("Lunch");
+        transaction.setCreatedAt(LocalDateTime.now());
+        transaction.setVersion(0L);
     }
 
     @Test
-    void testCalculateBalance() {
-        Transaction t1 = new Transaction();
-        t1.setAccountName("Aylin");
-        t1.setAmount(BigDecimal.valueOf(10));
-        t1.setTimestamp(LocalDateTime.now());
-        t1.setCategory("Income");
-        t1.setDescription("Salary");
-        transactionService.addTransaction(t1);
+    void shouldAddTransactionSuccessfully() {
+        when(transactionMapper.toEntity(any(TransactionRequestDTO.class))).thenReturn(transaction);
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
 
-        Transaction t2 = new Transaction();
-        t2.setAccountName("Aylin");
-        t2.setAmount(BigDecimal.valueOf(-3));
-        t2.setTimestamp(LocalDateTime.now());
-        t2.setCategory("Expense");
-        t2.setDescription("Lunch");
-        transactionService.addTransaction(t2);
+        transactionService.addTransaction(requestDTO);
 
-        BigDecimal balance = transactionService.calculateBalance("Aylin");
-        assertThat(balance).isEqualByComparingTo(BigDecimal.valueOf(7));
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+//    @Test
+//    void shouldThrowOptimisticLockExceptionOnConcurrentModification() {
+//        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+//        when(transactionRepository.save(any(Transaction.class)))
+//                .thenThrow(new OptimisticLockException("Concurrent modification"));
+//
+//        assertThrows(OptimisticLockException.class, () ->
+//                transactionService.updateTransaction(1L, requestDTO)
+//        );
+//    }
+
+    @Test
+    void shouldUpdateTransactionSuccessfully() {
+        requestDTO.setAmount(new BigDecimal("150.00"));
+        requestDTO.setCategory("Updated Food");
+        requestDTO.setDescription("Updated Lunch");
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+        when(transactionMapper.toDTO(any(Transaction.class))).thenReturn(new TransactionResponseDTO());
+
+        TransactionResponseDTO result = transactionService.updateTransaction(1L, requestDTO);
+
+        assertNotNull(result);
+        verify(transactionRepository).findById(1L);
+        verify(transactionRepository).save(any(Transaction.class));
+        verify(transactionMapper).toDTO(any(Transaction.class));
+    }
+
+    @Test
+    void shouldCalculateBalanceForAccountOnGivenDate() {
+        List<Transaction> transactions = Arrays.asList(
+                createTransaction(new BigDecimal("100.00")),
+                createTransaction(new BigDecimal("200.00"))
+        );
+
+        when(transactionRepository.findByAccountNameAndCreatedAt(
+                eq("TestAccount"),
+                any(LocalDate.class))
+        ).thenReturn(transactions);
+
+        BigDecimal balance = transactionService.calculateBalance("TestAccount", LocalDate.now());
+        assertEquals(new BigDecimal("300.00"), balance);
+    }
+
+    @Test
+    void shouldReturnFilteredTransactionsWithCorrectTotalRecords() {
+        List<Transaction> transactions = Collections.singletonList(transaction);
+        Page<Transaction> page = new PageImpl<>(transactions);
+
+        when(transactionRepository.findFilteredTransactions(
+                any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
+        ).thenReturn(page);
+
+        var result = transactionService.getFilteredTransactions(
+                "TestAccount",
+                new BigDecimal("50.00"),
+                new BigDecimal("150.00"),
+                LocalDate.now().minusDays(7),
+                LocalDate.now(),
+                "Food",
+                "Lunch",
+                0,
+                10,
+                "createdAt",
+                "desc"
+        );
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalRecords());
+    }
+
+    private Transaction createTransaction(BigDecimal amount) {
+        Transaction t = new Transaction();
+        t.setAmount(amount);
+        t.setAccountName("TestAccount");
+        t.setCreatedAt(LocalDateTime.now());
+        return t;
     }
 }
-

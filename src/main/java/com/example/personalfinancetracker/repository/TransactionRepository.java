@@ -16,18 +16,19 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByAccountName(String accountName);
 
-    @Query("SELECT t FROM Transaction t WHERE t.accountName = :accountName AND CAST(t.timestamp AS date) <= :date")
-    List<Transaction> findByAccountNameAndDate(
+    @Query("SELECT t FROM Transaction t WHERE t.accountName = :accountName AND CAST(t.createdAt AS date) <= :date")
+    List<Transaction> findByAccountNameAndCreatedAt(
             @Param("accountName") String accountName,
             @Param("date") LocalDate date
     );
 
+    // TO-DO: Consider adding Criteria Builder
     @Query("SELECT t FROM Transaction t " +
             "WHERE (:accountName IS NULL OR t.accountName = :accountName) " +
             "AND (:minAmount IS NULL OR t.amount >= :minAmount) " +
             "AND (:maxAmount IS NULL OR t.amount <= :maxAmount) " +
-            "AND (:fromDate IS NULL OR CAST(t.timestamp AS date) >= :fromDate) " +
-            "AND (:toDate IS NULL OR CAST(t.timestamp AS date) <= :toDate) " +
+            "AND (:fromDate IS NULL OR CAST(t.createdAt AS date) >= :fromDate) " +
+            "AND (:toDate IS NULL OR CAST(t.createdAt AS date) <= :toDate) " +
             "AND (:category IS NULL OR t.category = :category) " +
             "AND (:description IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', :description, '%')))")
     Page<Transaction> findFilteredTransactions(

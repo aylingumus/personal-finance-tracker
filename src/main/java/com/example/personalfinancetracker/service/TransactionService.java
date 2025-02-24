@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,15 +32,12 @@ public class TransactionService {
         Transaction transaction = transactionMapper.toEntity(requestDTO);
         Transaction savedTransaction = transactionRepository.save(transaction);
         return transactionMapper.toDTO(savedTransaction);
+        // TO-DO: cache'e yeni hesaplanan güncel balance'ı koyabilirim
+        // TO-DO: get balance endpointi de cache'ten çeker
+        // TO-DO: update'e de cache güncelleme işlemini yapmam lazım
     }
 
-    public List<TransactionResponseDTO> getAllTransactions() {
-        List<Transaction> transactions = transactionRepository.findAll();
-        return transactions.stream()
-                .map(transactionMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
+    @Transactional(readOnly = true)
     public List<TransactionResponseDTO> getTransactionsByAccount(String accountName) {
         List<Transaction> transactions = transactionRepository.findByAccountName(accountName);
         return transactions.stream()
@@ -47,9 +45,12 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public BigDecimal calculateBalance(String accountName, LocalDate date) {
+        // TO-DO: Make the calculations in db level not here
+        // TO-DO: (Optionally) Add cache - calculate today's balance
         return transactionRepository
-                .findByAccountNameAndDate(accountName, date)
+                .findByAccountNameAndCreatedAt(accountName, date)
                 .stream()
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -64,12 +65,21 @@ public class TransactionService {
         transaction.setAmount(requestDTO.getAmount());
         transaction.setCategory(requestDTO.getCategory());
         transaction.setDescription(requestDTO.getDescription());
-        // TO-DO: Maybe add a field as updatedAt, or update the timestamp or keep the original
+        transaction.setUpdatedAt(LocalDateTime.now());
 
         Transaction updated = transactionRepository.save(transaction);
         return transactionMapper.toDTO(updated);
+
+//        try {
+//            Transaction updated = transactionRepository.save(transaction);
+//            return transactionMapper.toDTO(updated);
+//        } catch (OptimisticLockException e) {
+//            // TO-DO: Add log
+//            throw e;
+//        }
     }
 
+    // TO-DO: Turn the params into an object
     public PagedTransactionResponseDTO getFilteredTransactions(
             String accountName,
             BigDecimal minAmount,
@@ -96,14 +106,14 @@ public class TransactionService {
                 .map(transactionMapper::toDTO)
                 .collect(Collectors.toList());
 
-        BigDecimal totalSum = pageResult.getContent().stream()
+        BigDecimal totalBalance = pageResult.getContent().stream()
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         PagedTransactionResponseDTO response = new PagedTransactionResponseDTO();
         response.setTransactions(transactions);
         response.setTotalRecords(pageResult.getTotalElements());
-        response.setTotalSum(totalSum);
+        response.setTotalBalance(totalBalance);
 
         return response;
     }

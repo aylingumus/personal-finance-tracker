@@ -19,6 +19,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionController {
 
+    // TO-DO: consistent, robust app - relational db and transaction management - add to readme
+    // TO-DO: now currency is global, but it can be extended in the future (add in readme)
     private final TransactionService transactionService;
 
     @PostMapping
@@ -27,25 +29,20 @@ public class TransactionController {
         return ResponseEntity.ok(responseDTO);
     }
 
-    @GetMapping
-    public ResponseEntity<List<TransactionResponseDTO>> getAllTransactions() {
-        List<TransactionResponseDTO> transactions = transactionService.getAllTransactions();
-        return ResponseEntity.ok(transactions);
-    }
-
     @GetMapping("/account/{accountName}")
     public ResponseEntity<List<TransactionResponseDTO>> getTransactionsByAccount(@PathVariable String accountName) {
         List<TransactionResponseDTO> transactions = transactionService.getTransactionsByAccount(accountName);
         return ResponseEntity.ok(transactions);
     }
 
-    // TO-DO: Think about adding a cache layer for calculating balance part
+    // TO-DO: Think about adding a cache layer for calculating balance part - for not calculating each time
     @GetMapping("/balance/{accountName}")
     public ResponseEntity<BigDecimal> getBalance(
             @PathVariable String accountName,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
+        // in cache, can be stored: key: "account name + date" as (Aylin_24022025), value: balance (10.0)
         LocalDate givenDate = date != null ? date : LocalDate.now();
         BigDecimal balance = transactionService.calculateBalance(accountName, givenDate);
         return ResponseEntity.ok(balance);
@@ -60,8 +57,9 @@ public class TransactionController {
     }
 
     // TO-DO: Consider adding filtration feature based on days, weeks, months and years
-    @GetMapping("/filter")
-    public ResponseEntity<PagedTransactionResponseDTO> filterTransactions(
+    // TO-DO: Create a FilterRequestDTO - @RequestParam object - it is mapping automatically
+    @GetMapping
+    public ResponseEntity<PagedTransactionResponseDTO> searchTransactions(
             @RequestParam(required = false) String accountName,
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
@@ -71,7 +69,7 @@ public class TransactionController {
             @RequestParam(required = false) String description,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         PagedTransactionResponseDTO response = transactionService.getFilteredTransactions(
                 accountName, minAmount, maxAmount, fromDate, toDate, category, description, page, size, sortBy, sortDir);

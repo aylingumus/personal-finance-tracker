@@ -16,7 +16,7 @@ public class TransactionMapper {
         transaction.setAmount(dto.getAmount());
         transaction.setCategory(dto.getCategory());
         transaction.setDescription(dto.getDescription());
-        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setCreatedAt(LocalDateTime.now());
         return transaction;
     }
 
@@ -25,9 +25,10 @@ public class TransactionMapper {
         dto.setId(entity.getId());
         dto.setAccountName(entity.getAccountName());
         dto.setAmount(entity.getAmount());
-        dto.setTimestamp(entity.getTimestamp());
+        dto.setCreatedAt(entity.getCreatedAt());
         dto.setCategory(entity.getCategory());
         dto.setDescription(entity.getDescription());
+        dto.setUpdatedAt(entity.getUpdatedAt());
         return dto;
     }
 }

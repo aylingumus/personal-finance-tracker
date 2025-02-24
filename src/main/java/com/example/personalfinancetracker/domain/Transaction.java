@@ -13,7 +13,8 @@ public class Transaction {
     private Long id;
     private String accountName;
     private BigDecimal amount;
-    private LocalDateTime timestamp;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private String category;
     private String description;
     @Version
