@@ -48,13 +48,8 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public BigDecimal calculateBalance(String accountName, LocalDate date) {
-        // TO-DO: Make the calculations in db level not here
         // TO-DO: (Optionally) Add cache - calculate today's balance
-        return transactionRepository
-                .findByAccountNameAndCreatedAt(accountName, date)
-                .stream()
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return transactionRepository.calculateBalanceForAccount(accountName, date);
     }
 
     @Transactional
@@ -92,7 +87,7 @@ public class TransactionService {
                 : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
 
-        Page<Transaction> pageResult = transactionRepository.findFilteredTransactions(
+        Page<Transaction> pageResult = transactionRepository.findTransactions(
                 criteria.getAccountName(),
                 criteria.getMinAmount(),
                 criteria.getMaxAmount(),
@@ -107,9 +102,15 @@ public class TransactionService {
                 .map(transactionMapper::toDTO)
                 .collect(Collectors.toList());
 
-        BigDecimal totalBalance = pageResult.getContent().stream()
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBalance = transactionRepository.calculateTotalBalanceForTransactions(
+                criteria.getAccountName(),
+                criteria.getMinAmount(),
+                criteria.getMaxAmount(),
+                criteria.getFromDate(),
+                criteria.getToDate(),
+                criteria.getCategory(),
+                criteria.getDescription()
+        );
 
         PagedTransactionResponseDTO response = new PagedTransactionResponseDTO();
         response.setTransactions(transactions);

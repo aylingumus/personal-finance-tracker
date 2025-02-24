@@ -102,18 +102,19 @@ class TransactionServiceTest {
 
     @Test
     void shouldCalculateBalanceForAccountOnGivenDate() {
-        List<Transaction> transactions = Arrays.asList(
-                createTransaction(new BigDecimal("100.00")),
-                createTransaction(new BigDecimal("200.00"))
-        );
-
-        when(transactionRepository.findByAccountNameAndCreatedAt(
+        when(transactionRepository.calculateBalanceForAccount(
                 eq("TestAccount"),
                 any(LocalDate.class))
-        ).thenReturn(transactions);
+        ).thenReturn(new BigDecimal("300.00"));
 
         BigDecimal balance = transactionService.calculateBalance("TestAccount", LocalDate.now());
+
         assertEquals(new BigDecimal("300.00"), balance);
+
+        verify(transactionRepository).calculateBalanceForAccount(
+                eq("TestAccount"),
+                any(LocalDate.class)
+        );
     }
 
     @Test
@@ -121,7 +122,7 @@ class TransactionServiceTest {
         List<Transaction> transactions = Collections.singletonList(transaction);
         Page<Transaction> page = new PageImpl<>(transactions);
 
-        when(transactionRepository.findFilteredTransactions(
+        when(transactionRepository.findTransactions(
                 any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class))
         ).thenReturn(page);
 

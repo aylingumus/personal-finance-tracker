@@ -22,6 +22,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("date") LocalDate date
     );
 
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+            "WHERE t.accountName = :accountName AND CAST(t.createdAt AS date) <= :date")
+    BigDecimal calculateBalanceForAccount(
+            @Param("accountName") String accountName,
+            @Param("date") LocalDate date
+    );
+
     // TO-DO: Consider adding Criteria Builder
     @Query("SELECT t FROM Transaction t " +
             "WHERE (:accountName IS NULL OR t.accountName = :accountName) " +
@@ -31,7 +38,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             "AND (:toDate IS NULL OR CAST(t.createdAt AS date) <= :toDate) " +
             "AND (:category IS NULL OR t.category = :category) " +
             "AND (:description IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', :description, '%')))")
-    Page<Transaction> findFilteredTransactions(
+    Page<Transaction> findTransactions(
             @Param("accountName") String accountName,
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
@@ -40,5 +47,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("category") String category,
             @Param("description") String description,
             Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+            "WHERE (:accountName IS NULL OR t.accountName = :accountName) " +
+            "AND (:minAmount IS NULL OR t.amount >= :minAmount) " +
+            "AND (:maxAmount IS NULL OR t.amount <= :maxAmount) " +
+            "AND (:fromDate IS NULL OR CAST(t.createdAt AS date) >= :fromDate) " +
+            "AND (:toDate IS NULL OR CAST(t.createdAt AS date) <= :toDate) " +
+            "AND (:category IS NULL OR t.category = :category) " +
+            "AND (:description IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', :description, '%')))")
+    BigDecimal calculateTotalBalanceForTransactions(
+            @Param("accountName") String accountName,
+            @Param("minAmount") BigDecimal minAmount,
+            @Param("maxAmount") BigDecimal maxAmount,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("category") String category,
+            @Param("description") String description);
 }
 
