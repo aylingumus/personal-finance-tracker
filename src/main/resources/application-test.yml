@@ -12,3 +12,10 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+logging:
+  level:
+    root: DEBUG
+    com.example.personalfinancetracker: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
