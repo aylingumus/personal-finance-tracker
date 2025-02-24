@@ -8,6 +8,8 @@ import com.example.personalfinancetracker.dto.TransactionSearchCriteriaDTO;
 import com.example.personalfinancetracker.mapper.TransactionMapper;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -29,13 +31,11 @@ public class TransactionService {
 
 
     @Transactional
+    @CacheEvict(value = "balanceCache", allEntries = true)
     public TransactionResponseDTO addTransaction(TransactionRequestDTO requestDTO) {
         Transaction transaction = transactionMapper.toEntity(requestDTO);
         Transaction savedTransaction = transactionRepository.save(transaction);
         return transactionMapper.toDTO(savedTransaction);
-        // TO-DO: cache'e yeni hesaplanan güncel balance'ı koyabilirim
-        // TO-DO: get balance endpointi de cache'ten çeker
-        // TO-DO: update'e de cache güncelleme işlemini yapmam lazım
     }
 
     @Transactional(readOnly = true)
@@ -47,12 +47,13 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "balanceCache", key = "#accountName + '_' + #date")
     public BigDecimal calculateBalance(String accountName, LocalDate date) {
-        // TO-DO: (Optionally) Add cache - calculate today's balance
         return transactionRepository.calculateBalanceForAccount(accountName, date);
     }
 
     @Transactional
+    @CacheEvict(value = "balanceCache", allEntries = true)
     public TransactionResponseDTO updateTransaction(Long id, TransactionRequestDTO requestDTO) {
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));

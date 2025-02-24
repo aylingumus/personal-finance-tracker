@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+// TO-DO: Consider adding API versioning
 @RestController
 @RequestMapping("/transactions")
 @RequiredArgsConstructor
@@ -36,14 +37,12 @@ public class TransactionController {
         return ResponseEntity.ok(transactions);
     }
 
-    // TO-DO: Think about adding a cache layer for calculating balance part - for not calculating each time
     @GetMapping("/balance/{accountName}")
     public ResponseEntity<BigDecimal> getBalance(
             @PathVariable String accountName,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        // in cache, can be stored: key: "account name + date" as (Aylin_24022025), value: balance (10.0)
         LocalDate givenDate = date != null ? date : LocalDate.now();
         BigDecimal balance = transactionService.calculateBalance(accountName, givenDate);
         return ResponseEntity.ok(balance);
