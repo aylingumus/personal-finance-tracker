@@ -12,6 +12,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -21,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 public class TransactionErrorIntegrationTest {
 
-    private static final String API_PREFIX = "/api/v1/transactions";
+    private static final Logger log = LoggerFactory.getLogger(TransactionErrorIntegrationTest.class);
 
     @Autowired
     private MockMvc mockMvc;
@@ -119,5 +126,46 @@ public class TransactionErrorIntegrationTest {
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", containsString("Transaction not found for id: 9999")));
+    }
+
+    @Test
+    public void shouldHandleConcurrentUpdates() throws Exception {
+        Transaction tx = createAndSaveTransaction(transactionRepository,"Aylin", BigDecimal.valueOf(100), "Income", "Salary", LocalDateTime.now());
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            List<Integer> statuses = Collections.synchronizedList(new ArrayList<>());
+
+            Runnable updateTask = () -> {
+                TransactionRequestDTO updateRequest = new TransactionRequestDTO();
+                updateRequest.setAccountName("Aylin");
+                updateRequest.setAmount(BigDecimal.valueOf(150));
+                updateRequest.setCategory("Income");
+                updateRequest.setDescription("Updated Salary");
+                try {
+                    int status = mockMvc.perform(put(API_PREFIX.getValue() + "/" + tx.getId())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(updateRequest)))
+                            .andReturn().getResponse().getStatus();
+                    statuses.add(status);
+                } catch (Exception e) {
+                    log.error("Error during concurrent update task", e);
+                }
+            };
+
+            executor.execute(updateTask);
+            executor.execute(updateTask);
+            executor.shutdown();
+            boolean terminated = executor.awaitTermination(1, TimeUnit.MINUTES);
+            assertTrue(terminated, "Executor did not terminate in the expected time");
+
+            // Expect one update to succeed (200) and one to fail (409)
+            assertTrue(statuses.contains(200));
+            assertTrue(statuses.contains(409));
+
+            Transaction updatedTx = transactionRepository.findById(tx.getId()).orElseThrow();
+            assertEquals(0, BigDecimal.valueOf(150.0).compareTo(updatedTx.getAmount()));
+            // Verify version incremented to 1
+            assertEquals(1, updatedTx.getVersion());
+        }
     }
 }
