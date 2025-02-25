@@ -137,4 +137,15 @@ public class TransactionService {
 
         return response;
     }
+
+    @Transactional
+    @CacheEvict(value = "balanceCache", allEntries = true)
+    public void deleteTransaction(Long id) {
+        if (!transactionRepository.existsById(id)) {
+            log.warn("Delete failed - Transaction not found with ID: {}", id);
+            throw new TransactionNotFoundException(id);
+        }
+        transactionRepository.deleteById(id);
+        log.info("Transaction deleted with ID: {}", id);
+    }
 }
