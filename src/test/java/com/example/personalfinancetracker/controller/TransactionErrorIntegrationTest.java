@@ -1,10 +1,13 @@
 package com.example.personalfinancetracker.controller;
 
+import com.example.personalfinancetracker.domain.Transaction;
 import com.example.personalfinancetracker.dto.TransactionRequestDTO;
 import com.example.personalfinancetracker.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,7 +23,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.personalfinancetracker.util.ApiConstant.API_PREFIX;
+import static com.example.personalfinancetracker.util.TransactionTestUtils.createAndSaveTransaction;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,7 +55,7 @@ public class TransactionErrorIntegrationTest {
     public void shouldReturnValidationErrorWhenAddingTransactionWithMissingFields() throws Exception {
         String invalidRequest = "{\"description\": \"Salary\"}";
 
-        mockMvc.perform(post(API_PREFIX)
+        mockMvc.perform(post(API_PREFIX.getValue())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequest))
                 .andExpect(status().isBadRequest())
@@ -65,7 +72,7 @@ public class TransactionErrorIntegrationTest {
         updateRequest.setCategory("Income");
         updateRequest.setDescription("Updated Salary");
 
-        mockMvc.perform(put(API_PREFIX + "/9999")
+        mockMvc.perform(put(API_PREFIX.getValue() + "/9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isNotFound())
@@ -74,14 +81,14 @@ public class TransactionErrorIntegrationTest {
 
     @Test
     public void shouldReturnNotFoundWhenDeletingNonExistentTransaction() throws Exception {
-        mockMvc.perform(delete(API_PREFIX + "/9999"))
+        mockMvc.perform(delete(API_PREFIX.getValue() + "/9999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", containsString("Transaction not found for id: 9999")));
     }
 
     @Test
     public void shouldReturnErrorWhenGettingBalanceWithInvalidDateFormat() throws Exception {
-        mockMvc.perform(get(API_PREFIX + "/balance/Aylin")
+        mockMvc.perform(get(API_PREFIX.getValue() + "/balance/Aylin")
                         .param("date", "23/02/2025")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
@@ -90,7 +97,7 @@ public class TransactionErrorIntegrationTest {
 
     @Test
     public void shouldReturnErrorForNegativePageNumber() throws Exception {
-        mockMvc.perform(get(API_PREFIX)
+        mockMvc.perform(get(API_PREFIX.getValue())
                         .param("page", "-1")
                         .param("size", "10"))
                 .andExpect(status().isBadRequest())
@@ -99,7 +106,7 @@ public class TransactionErrorIntegrationTest {
 
     @Test
     public void shouldReturnErrorForInvalidDateRangeInSearch() throws Exception {
-        mockMvc.perform(get(API_PREFIX)
+        mockMvc.perform(get(API_PREFIX.getValue())
                         .param("fromDate", "2025-03-15")
                         .param("toDate", "2025-02-15"))
                 .andExpect(status().isBadRequest())
@@ -108,7 +115,7 @@ public class TransactionErrorIntegrationTest {
 
     @Test
     public void shouldReturnErrorWhenRequestingBalanceForNonExistentAccount() throws Exception {
-        mockMvc.perform(get(API_PREFIX + "/balance/Alien"))
+        mockMvc.perform(get(API_PREFIX.getValue() + "/balance/Alien"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", containsString("No transactions found for account: Alien")));
     }
@@ -121,7 +128,7 @@ public class TransactionErrorIntegrationTest {
         updateRequest.setCategory("Income");
         updateRequest.setDescription("Updated Salary");
 
-        mockMvc.perform(put(API_PREFIX + "/9999")
+        mockMvc.perform(put(API_PREFIX.getValue() + "/9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isNotFound())
