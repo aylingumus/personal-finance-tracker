@@ -53,7 +53,6 @@ public class TransactionController {
         return ResponseEntity.ok(updatedTransaction);
     }
 
-    // TO-DO: Consider adding filtration feature based on days, weeks, months and years
     @GetMapping
     public ResponseEntity<PagedTransactionResponseDTO> searchTransactions(
             @Valid @ModelAttribute TransactionSearchCriteriaDTO searchCriteria,
