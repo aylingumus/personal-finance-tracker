@@ -15,6 +15,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.personalfinancetracker.domain.TransactionCriteriaField.*;
+
 @Repository
 public class CustomTransactionRepositoryImpl implements CustomTransactionRepository {
 
@@ -30,25 +32,25 @@ public class CustomTransactionRepositoryImpl implements CustomTransactionReposit
         List<Predicate> predicates = new ArrayList<>();
 
         if (accountName != null) {
-            predicates.add(cb.equal(root.get("accountName"), accountName));
+            predicates.add(cb.equal(root.get(ACCOUNT_NAME.getFieldName()), accountName));
         }
         if (minAmount != null) {
-            predicates.add(cb.ge(root.get("amount"), minAmount));
+            predicates.add(cb.ge(root.get(AMOUNT.getFieldName()), minAmount));
         }
         if (maxAmount != null) {
-            predicates.add(cb.le(root.get("amount"), maxAmount));
+            predicates.add(cb.le(root.get(AMOUNT.getFieldName()), maxAmount));
         }
         if (fromDate != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt").as(LocalDate.class), fromDate));
+            predicates.add(cb.greaterThanOrEqualTo(root.get(CREATED_AT.getFieldName()).as(LocalDate.class), fromDate));
         }
         if (toDate != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("createdAt").as(LocalDate.class), toDate));
+            predicates.add(cb.lessThanOrEqualTo(root.get(CREATED_AT.getFieldName()).as(LocalDate.class), toDate));
         }
         if (category != null) {
-            predicates.add(cb.equal(root.get("category"), category));
+            predicates.add(cb.equal(root.get(CATEGORY.getFieldName()), category));
         }
         if (description != null) {
-            predicates.add(cb.like(cb.lower(root.get("description")), "%" + description.toLowerCase() + "%"));
+            predicates.add(cb.like(cb.lower(root.get(DESCRIPTION.getFieldName())), "%" + description.toLowerCase() + "%"));
         }
         return predicates.toArray(new Predicate[0]);
     }
@@ -96,7 +98,7 @@ public class CustomTransactionRepositoryImpl implements CustomTransactionReposit
         CriteriaQuery<BigDecimal> cq = cb.createQuery(BigDecimal.class);
         Root<Transaction> root = cq.from(Transaction.class);
         Predicate[] predicates = buildPredicates(cb, root, accountName, minAmount, maxAmount, fromDate, toDate, category, description);
-        cq.select(cb.coalesce(cb.sum(root.get("amount")), BigDecimal.ZERO)).where(predicates);
+        cq.select(cb.coalesce(cb.sum(root.get(AMOUNT.getFieldName())), BigDecimal.ZERO)).where(predicates);
         return entityManager.createQuery(cq).getSingleResult();
     }
 }
