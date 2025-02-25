@@ -14,9 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -63,6 +61,13 @@ public class TransactionErrorIntegrationTest {
         mockMvc.perform(put(API_PREFIX + "/9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", containsString("Transaction not found for id: 9999")));
+    }
+
+    @Test
+    public void shouldReturnNotFoundWhenDeletingNonExistentTransaction() throws Exception {
+        mockMvc.perform(delete(API_PREFIX + "/9999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", containsString("Transaction not found for id: 9999")));
     }

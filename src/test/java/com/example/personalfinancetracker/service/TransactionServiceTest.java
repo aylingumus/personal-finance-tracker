@@ -92,6 +92,15 @@ class TransactionServiceTest {
     }
 
     @Test
+    void shouldDeleteTransactionSuccessfully() {
+        when(transactionRepository.existsById(1L)).thenReturn(true);
+
+        transactionService.deleteTransaction(1L);
+
+        verify(transactionRepository).deleteById(1L);
+    }
+
+    @Test
     void shouldCalculateBalanceForAccountOnGivenDate() {
         when(transactionRepository.findByAccountName(eq("Aylin")))
                 .thenReturn(Collections.singletonList(transaction));

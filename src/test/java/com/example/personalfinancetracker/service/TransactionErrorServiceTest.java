@@ -76,6 +76,15 @@ public class TransactionErrorServiceTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenDeletingNonExistentTransaction() {
+        when(transactionRepository.existsById(999L)).thenReturn(false);
+
+        assertThrows(TransactionNotFoundException.class, () ->
+                transactionService.deleteTransaction(999L)
+        );
+    }
+
+    @Test
     void shouldThrowExceptionWhenCalculatingBalanceForNonExistentAccount() {
         when(transactionRepository.findByAccountName("Alien"))
                 .thenReturn(Collections.emptyList());

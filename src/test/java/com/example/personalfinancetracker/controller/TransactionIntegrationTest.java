@@ -19,8 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -93,6 +92,16 @@ public class TransactionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amount").value(75))
                 .andExpect(jsonPath("$.description").value("Updated Salary"));
+    }
+
+    @Test
+    public void shouldDeleteTransactionSuccessfully() throws Exception {
+        Transaction tx = createAndSaveTransaction("Aylin", BigDecimal.valueOf(50), "Income", "Salary");
+
+        mockMvc.perform(delete(API_PREFIX + "/" + tx.getId()))
+                .andExpect(status().isNoContent());
+
+        assertFalse(transactionRepository.existsById(tx.getId()));
     }
 
     @Test
