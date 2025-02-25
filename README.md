@@ -6,7 +6,8 @@ A robust REST API application for managing personal finances, allowing users to 
 
 - Create, update, delete and retrieve financial transactions
 - Search transactions with multiple filtering options, ordering, and pagination
-- Shows current net balance on a given date
+- **Dynamic total balance:** The search response includes the net balance based on applied filters
+- **Current net balance:** A separate endpoint provides the net balance for an account on a given date
 - Optimistic locking to prevent concurrent updates
 - Comprehensive error handling
 - Caching for improved performance
