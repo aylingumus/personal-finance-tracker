@@ -4,9 +4,9 @@ A robust REST API application for managing personal finances, allowing users to 
 
 ## Features
 
-- Create, update, and retrieve financial transactions
-- Calculate account balances at specific dates
-- Search transactions with multiple filtering options
+- Create, update, delete and retrieve financial transactions
+- Search transactions with multiple filtering options, ordering, and pagination
+- Shows current net balance on a given date
 - Optimistic locking to prevent concurrent updates
 - Comprehensive error handling
 - Caching for improved performance
@@ -46,12 +46,13 @@ A robust REST API application for managing personal finances, allowing users to 
 
 ### Transactions
 
-- `GET /transactions` - Get all transactions with filtering options
-- `GET /transactions/account/{accountName}` - Get all transactions for an account
-- `GET /transactions/balance/{accountName}` - Get current balance for an account
-- `GET /transactions/balance/{accountName}?date=2025-02-24` - Get balance for an account at a specific date
-- `PUT /transactions/{id}` - Update a transaction
-- `POST /transactions` - Create a new transaction
+- `GET /api/v1/transactions` - Get all transactions with filtering options
+- `GET /api/v1/transactions/account/{accountName}` - Get all transactions for an account
+- `GET /api/v1/transactions/balance/{accountName}` - Get current balance for an account
+- `GET /api/v1/transactions/balance/{accountName}?date=2025-02-24` - Get balance for an account at a specific date
+- `PUT /api/v1/transactions/{id}` - Update a transaction
+- `POST /api/v1/transactions` - Create a new transaction
+- `DELETE /api/v1/transactions/{id}` - Delete a transaction
 
 ## Testing
 
