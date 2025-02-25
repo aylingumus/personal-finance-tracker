@@ -20,8 +20,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionController {
 
-    // TO-DO: consistent, robust app - relational db and transaction management - add to readme
-    // TO-DO: now currency is global, but it can be extended in the future (add in readme)
     private final TransactionService transactionService;
 
     @PostMapping
