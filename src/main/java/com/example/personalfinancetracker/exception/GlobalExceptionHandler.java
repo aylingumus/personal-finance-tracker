@@ -1,10 +1,12 @@
 package com.example.personalfinancetracker.exception;
 
 import com.example.personalfinancetracker.dto.ErrorResponseDTO;
+import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -46,6 +48,13 @@ public class GlobalExceptionHandler {
         log.error("Transaction not found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDTO(ex.getMessage()));
+    }
+
+    @ExceptionHandler({OptimisticLockException.class, ObjectOptimisticLockingFailureException.class})
+    public ResponseEntity<ErrorResponseDTO> handleOptimisticLockingExceptions(Exception ex, WebRequest request) {
+        log.error("Concurrent update error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponseDTO("Concurrent update error: " + ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
