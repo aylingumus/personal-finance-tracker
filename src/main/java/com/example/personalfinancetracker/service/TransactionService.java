@@ -73,7 +73,7 @@ public class TransactionService {
 
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> {
-                    log.warn("Transaction not found with ID: {}", id);
+                    log.warn("Update failed - Transaction not found with ID: {}", id);
                     return new TransactionNotFoundException(id);
                 });
 
