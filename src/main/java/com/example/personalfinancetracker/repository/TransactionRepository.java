@@ -14,12 +14,6 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByAccountName(String accountName);
 
-    @Query("SELECT t FROM Transaction t WHERE t.accountName = :accountName AND CAST(t.createdAt AS date) <= :date")
-    List<Transaction> findByAccountNameAndCreatedAt(
-            @Param("accountName") String accountName,
-            @Param("date") LocalDate date
-    );
-
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
             "WHERE t.accountName = :accountName AND CAST(t.createdAt AS date) <= :date")
     BigDecimal calculateBalanceForAccount(
